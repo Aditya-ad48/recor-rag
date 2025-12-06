@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-server
+    restart: unless-stopped
+    # 'ipc: host' is crucial for PyTorch/vLLM shared memory management,
+    # especially when using multiple GPUs (Tensor Parallelism).
+    ipc: host
+    
+    volumes:
+      - ./model-gptoss:/model-gptoss
+    
+    ports:
+      - "8000:8000"
+
+    # GPU Configuration (Requires NVIDIA Container Toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # Number of GPUs to use (e.g., 1, 2, 'all')
+              capabilities: [gpu]
+
+    # Command arguments passed to the vLLM entrypoint
+    command: >
+      --model /model-gptoss
+      --gpu-memory-utilization 0.80
+      --max-model-len 20000
+      --max-num-seqs 35
+      --load-format safetensors
+      --host 0.0.0.0
+      --port 8000
+
+  recor-rag:
+    build: 
+      context: ./recor-rag
+
+    container_name: recor-rag
+  
+    # GPU Configuration (Requires NVIDIA Container Toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # Number of GPUs to use (e.g., 1, 2, 'all')
+              capabilities: [gpu]
+
+    ports:
+      - 8888:8888
+
+    depends_on:
+      - vllm
+
+    volumes:
+      # Mounts the recor-rag directory so you can edit main.py without rebuilding
+      - ./recor-rag:/app
+      - ./huggingface:/root/.cache/huggingface
