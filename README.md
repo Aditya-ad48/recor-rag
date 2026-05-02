@@ -1,4 +1,5 @@
 <h1 align="center">ReCOR RAG</h1>
+ Inter IIT Tech Meet 14.0 — IIT BHU placed 4th overall (Problem Statement by Observe.AI)
 
 ## Folder Structure
 
